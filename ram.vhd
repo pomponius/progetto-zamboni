@@ -1,0 +1,29 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+USE ieee.numeric_std.all;
+
+ENTITY ram IS
+	PORT(DATA_IN: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		ADDRESS: IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+		CS, CLK, WRN, RD: IN STD_LOGIC;
+		DATA_OUT: OUT STD_LOGIC_VECTOR(7 DOWNTO 0));
+END ram;
+
+ARCHITECTURE Structural OF ram IS
+TYPE Memory_Type IS ARRAY (1023 DOWNTO 0) OF STD_LOGIC_VECTOR(7 DOWNTO 0);
+SIGNAL Memory: Memory_Type;
+BEGIN
+
+PROCESS (CLK)
+BEGIN
+	IF (CLK'EVENT AND CLK='1') THEN
+		IF (CS='1' AND WRN='0') THEN
+			Memory(to_integer(unsigned(ADDRESS)))<=DATA_IN;
+		END IF;
+	END IF;
+END PROCESS;
+
+DATA_OUT<= Memory(to_integer(unsigned(ADDRESS))) WHEN (CS='1' AND RD='1') ELSE
+		(OTHERS=>'0');
+
+END Structural;
