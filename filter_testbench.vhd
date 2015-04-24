@@ -14,23 +14,23 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 	CONSTANT CLK_period : TIME := 1 ms;
 	CONSTANT delay_short : TIME := 1 ns;
 	CONSTANT delay_long : TIME := 1 ms;
-	CONSTANT seed : STD_LOGIC_VECTOR(7 DOWNTO 0) := "10010011";
+	CONSTANT seed : STD_LOGIC_VECTOR(7 DOWNTO 0) := "00000010"; --:= "10010011";
 	
 	SIGNAL CLK, RSTN, START, RD_DATA_OUT, DONE : STD_LOGIC;
 	SIGNAL DATA_IN, DATA_OUT : STD_LOGIC_VECTOR(7 DOWNTO 0);
 	SIGNAL ADDRESS_DATA_OUT : STD_LOGIC_VECTOR(9 DOWNTO 0);
 	SIGNAL RAM1, RAM2 : Ram;
 
-	--COMPONENT filter IS
-		--PORT (CLK, RSTN, START, RD_DATA_OUT : IN STD_LOGIC;
-			--DATA_IN : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-			--ADDRESS_DATA_OUT : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
-			--DATA_OUT : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-			--DONE: OUT STD_LOGIC);
-  	--END COMPONENT;
+	COMPONENT filter IS
+		PORT (CLK, RSTN, START, RD_DATA_OUT : IN STD_LOGIC;
+			DATA_IN : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+			ADDRESS_DATA_OUT : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+			DATA_OUT : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+			DONE: OUT STD_LOGIC);
+  	END COMPONENT;
 	
 	BEGIN
-	   -- dut : filter PORT MAP (CLK, RSTN, START, RD_DATA_OUT, DATA_IN, ADDRESS_DATA_OUT, DATA_OUT, DONE);
+	   dut : filter PORT MAP (CLK, RSTN, START, RD_DATA_OUT, DATA_IN, ADDRESS_DATA_OUT, DATA_OUT, DONE);
 	    
 		clock_gen : PROCESS
 			BEGIN
@@ -44,9 +44,10 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 		  FILE outfile : TEXT IS OUT "outfile.txt";
 		  VARIABLE buf : LINE;
 		  VARIABLE a, b, c, d, errors : INTEGER := 0;
-		  VARIABLE result : STD_LOGIC_VECTOR(7 DOWNTO 0);
+		  VARIABLE result : INTEGER;
 			VARIABLE rand_temp : STD_LOGIC_VECTOR(7 DOWNTO 0):= seed;
 			VARIABLE temp : STD_LOGIC := '0';
+			VARIABLE temp_div: SIGNED(7 DOWNTO 0);
 			
 			BEGIN
 				START <= '0';
@@ -76,13 +77,16 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 					WAIT FOR delay_long;	
 				END LOOP;		
 				
+				WAIT UNTIL DONE='1';
+				START<='0';
+				
 				RD_DATA_OUT <= '1';
 				
 				FOR i IN 0 TO 1023 LOOP
-				  ADDRESS_DATA_OUT  <= STD_LOGIC_VECTOR(TO_SIGNED(i, ADDRESS_DATA_OUT'LENGTH));
-				  WAIT FOR delay_long:
+				  ADDRESS_DATA_OUT  <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, ADDRESS_DATA_OUT'LENGTH));
+				  WAIT FOR delay_long;
 				  RAM2(i) <= DATA_OUT;
-				  WAIT FOR delay_long:
+				  WAIT FOR delay_long;
 				END LOOP;
 				
 				FOR i IN 0 TO 1023 LOOP
@@ -102,15 +106,25 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 				  
 				  c:=TO_INTEGER(SIGNED(RAM1(i)));
 				  
-				  result := STD_LOGIC_VECTOR(TO_SIGNED(a/2-b/4-4*c+2*d, result'LENGTH));
 				  
-				  IF result/=RAM1(i) THEN
+				  temp_div:=to_signed(a, 8);
+				  a:=to_integer(temp_div(7)&temp_div(7 downto 1));
+				  temp_div:=to_signed(b, 8);
+				  b:=to_integer(temp_div(7)&temp_div(7)&temp_div(7 downto 2));
+				  result:=a-b-4*c+2*d;
+				  IF result>127 THEN
+				    result:=127;
+				  ELSIF result<-128 THEN
+				    result:=-128;
+				  END IF;
+				  
+				  IF result/=TO_INTEGER(SIGNED(RAM2(i))) THEN
 				    write(buf, STRING'("ERROR: cell "));
 				    write(buf, i);
 				    write(buf, STRING'(" is "));
 				    write(buf, TO_INTEGER(SIGNED(RAM2(i))));
 				    write(buf, STRING'(", should be "));
-				    write(buf, TO_INTEGER(SIGNED(result)));
+				    write(buf, result);
 				    WRITELINE (outfile, buf);
 				    errors := errors + 1;
 				  END IF;			  
