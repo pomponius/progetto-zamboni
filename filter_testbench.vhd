@@ -80,7 +80,9 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 				
 				FOR i IN 0 TO 1023 LOOP
 				  ADDRESS_DATA_OUT  <= STD_LOGIC_VECTOR(TO_SIGNED(i, ADDRESS_DATA_OUT'LENGTH));
+				  WAIT FOR delay_long:
 				  RAM2(i) <= DATA_OUT;
+				  WAIT FOR delay_long:
 				END LOOP;
 				
 				FOR i IN 0 TO 1023 LOOP
