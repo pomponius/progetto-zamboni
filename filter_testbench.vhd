@@ -43,8 +43,8 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 		run : PROCESS
 		  FILE outfile : TEXT IS OUT "outfile.txt";
 		  VARIABLE buf : LINE;
-		  VARIABLE a, b, c, d, errors : INTEGER := 0;
-		  VARIABLE result : INTEGER;
+		  VARIABLE a, b, c, d, shift_a, shift_b, errors, temp_hits, result : INTEGER := 0;
+		  VARIABLE average : REAL;
 			VARIABLE rand_temp : STD_LOGIC_VECTOR(7 DOWNTO 0):= seed;
 			VARIABLE temp : STD_LOGIC := '0';
 			VARIABLE temp_div: SIGNED(7 DOWNTO 0);
@@ -53,6 +53,9 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 				START <= '0';
 				RSTN <= '1';
 				RD_DATA_OUT <= '0';
+				
+				errors := 0;
+				temp_hits := 0;
 				
 				WAIT FOR delay_long;
 				
@@ -77,9 +80,12 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 					WAIT FOR delay_long;	
 				END LOOP;		
 				
-				WAIT UNTIL DONE='1';
-				START<='0';
+				WHILE DONE='0' LOOP
+				    WAIT UNTIL CLK='1';
+		        temp_hits := temp_hits + 1;  
+		    END LOOP;
 				
+				START<='0';
 				RD_DATA_OUT <= '1';
 				
 				FOR i IN 0 TO 1023 LOOP
@@ -106,12 +112,12 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 				  
 				  c:=TO_INTEGER(SIGNED(RAM1(i)));
 				  
-				  
 				  temp_div:=to_signed(a, 8);
-				  a:=to_integer(temp_div(7)&temp_div(7 downto 1));
+				  shift_a:=to_integer(temp_div(7)&temp_div(7 downto 1));
 				  temp_div:=to_signed(b, 8);
-				  b:=to_integer(temp_div(7)&temp_div(7)&temp_div(7 downto 2));
-				  result:=a-b-4*c+2*d;
+				  shift_b:=to_integer(temp_div(7)&temp_div(7)&temp_div(7 downto 2));
+				  
+				  result:=shift_a-shift_b-4*c+2*d;
 				  IF result>127 THEN
 				    result:=127;
 				  ELSIF result<-128 THEN
@@ -133,6 +139,14 @@ ARCHITECTURE Behaviour OF filter_testbench IS
 				write(buf, STRING'("TOTAL ERRORS: "));
 			  write(buf, errors);
 			  WRITELINE (outfile, buf);
-				
-		END PROCESS;
+			  write(buf, STRING'("The algorithm took "));
+			  write(buf, temp_hits);
+			  write(buf, STRING'(" clock hits to be completed, with an average of "));
+			  average := REAL(temp_hits)/1024.0;
+			  write(buf, average);
+			  write(buf, STRING'(" operations per memory cell."));
+			  WRITELINE (outfile, buf);
+			  
+			  WAIT FOR delay_long*20;				
+		END PROCESS;		
 END;
