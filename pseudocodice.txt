@@ -50,3 +50,8 @@ for ADDR=0 to ADDR=1023 do
 	Yn_1=Y[ADDR];
 end for;
 
+--segnala che hai finito e attendi
+DONE=1;
+while START=1 do
+end while;
+
