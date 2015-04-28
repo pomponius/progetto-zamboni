@@ -1,0 +1,57 @@
+Xn_1=0;
+Yn_1=0;
+Yn_2=0;
+ADDR=0;
+
+--attendi lo start
+while START=0 do
+end while;
+
+--carica i valori
+for ADDR=0 to ADDR=1023 do
+	X[ADDR]=DATA_IN;
+end for;
+
+
+--elabora i dati
+for ADDR=0 to ADDR=1023 do
+	TEMP=(Xn_1<<1)-(X[ADDR]<<2);
+	if Yn_1==0 and Yn_2==0 then 	-- se gli altri operandi sono 0 salta
+		if TEMP>127 then
+			Y[ADDR]=127;
+		else if TEMP<-128 then
+			Y[ADDR]=-128;
+		else 
+			Y[ADDR]= TEMP;
+		end if;
+	else if TEMP>222 then			-- TEMP>255
+		Y[ADDR]=127;
+	else if TEMP<-223 then			-- TEMP<-256
+		Y[ADDR]=-128;
+	else 
+		TEMP=(Yn_2>>2)-TEMP;
+		if TEMP>191 then			-- TEMP>255
+			Y[ADDR]=-128;
+		else if TEMP<-191 then		-- TEMP<-256
+			Y[ADDR]=127;
+		else 
+			TEMP=(Yn_1>>1)-TEMP;
+			if TEMP>127 then
+				Y[ADDR]=127;
+			else if TEMP<-128 then
+				Y[ADDR]=-128;
+			else 
+				Y[ADDR]= TEMP;
+			end if;
+		end if;
+	end if;
+	Xn_1=X[ADDR];
+	Yn_2=Yn_1;
+	Yn_1=Y[ADDR];
+end for;
+
+--segnala che hai finito e attendi
+DONE=1;
+while START=1 do
+end while;
+
